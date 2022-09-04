@@ -1,6 +1,6 @@
-name: Download workflow artifact
+name: Download workflow artifact return commit id
 description: Download and extract an artifact associated with given workflow and commit or other criteria
-author: dawidd6
+author: annguyen281
 branding:
   icon: download
   color: blue
