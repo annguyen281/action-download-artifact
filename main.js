@@ -126,6 +126,7 @@ async function main() {
                         }
                     }
                     runID = run.id
+                    commit = run.head_sha
                     core.info(`==> (found) Run ID: ${runID}`)
                     core.info(`==> (found) Run date: ${run.created_at}`)
                     break
@@ -135,6 +136,8 @@ async function main() {
                 }
             }
         }
+        
+        core.setOutput("head_sha", commit)
 
         if (!runID) {
             return setExitMessage(ifNoArtifactFound, "no matching workflow run found with any artifacts?")
