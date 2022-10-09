@@ -67,7 +67,7 @@ async function main() {
                 pull_number: pr,
             })
             commit = pull.data.head.sha
-            //branch = pull.data.head.ref
+            branch = pull.data.head.ref
         }
 
         if (commit) {
@@ -139,7 +139,8 @@ async function main() {
         }
         
         core.setOutput("head_sha", commit)
-
+        core.setOutput("branch", branch)
+        
         if (!runID) {
             return setExitMessage(ifNoArtifactFound, "no matching workflow run found with any artifacts?")
         }
