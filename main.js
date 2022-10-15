@@ -146,91 +146,94 @@ async function main() {
         if (!runID) {
             return setExitMessage(ifNoArtifactFound, "no matching workflow run found with any artifacts?")
         }
-
-        let artifacts = await client.paginate(client.rest.actions.listWorkflowRunArtifacts, {
-            owner: owner,
-            repo: repo,
-            run_id: runID,
-        })
-
-        // One artifact or all if `name` input is not specified.
-        if (name) {
-            filtered = artifacts.filter((artifact) => {
-                return artifact.name == name
-            })
-            if (filtered.length == 0) {
-                core.info(`==> (not found) Artifact: ${name}`)
-                core.info('==> Found the following artifacts instead:')
-                for (const artifact of artifacts) {
-                    core.info(`\t==> (found) Artifact: ${artifact.name}`)
-                }
-            }
-            artifacts = filtered
-        }
-
-        core.setOutput("artifacts", artifacts)
-
-        if (dryRun) {
-            if (artifacts.length == 0) {
-                core.setOutput("dry_run", false)
-                core.setOutput("found_artifact", false)
-                return
-            } else {
-                core.setOutput("dry_run", true)
-                core.setOutput("found_artifact", true)
-                core.info('==> (found) Artifacts')
-                for (const artifact of artifacts) {
-                    const size = filesize(artifact.size_in_bytes, { base: 10 })
-                    core.info(`\t==> Artifact:`)
-                    core.info(`\t==> ID: ${artifact.id}`)
-                    core.info(`\t==> Name: ${artifact.name}`)
-                    core.info(`\t==> Size: ${size}`)
-                }
-                return
-            }
-        }
-
-        if (artifacts.length == 0) {
-            return setExitMessage(ifNoArtifactFound, "no artifacts found")
-        }
-
-        core.setOutput("found_artifact", true)
         
-        for (const artifact of artifacts) {
-            core.info(`==> Artifact: ${artifact.id}`)
-
-            const size = filesize(artifact.size_in_bytes, { base: 10 })
-
-            core.info(`==> Downloading: ${artifact.name}.zip (${size})`)
-
-            const zip = await client.rest.actions.downloadArtifact({
+        if (skip_download_artifact)
+        {
+            let artifacts = await client.paginate(client.rest.actions.listWorkflowRunArtifacts, {
                 owner: owner,
                 repo: repo,
-                artifact_id: artifact.id,
-                archive_format: "zip",
+                run_id: runID,
             })
 
-            if (skipUnpack) {
-                fs.mkdirSync(path, { recursive: true })
-                fs.writeFileSync(`${pathname.join(path, artifact.name)}.zip`, Buffer.from(zip.data), 'binary')
-                continue
+            // One artifact or all if `name` input is not specified.
+            if (name) {
+                filtered = artifacts.filter((artifact) => {
+                    return artifact.name == name
+                })
+                if (filtered.length == 0) {
+                    core.info(`==> (not found) Artifact: ${name}`)
+                    core.info('==> Found the following artifacts instead:')
+                    for (const artifact of artifacts) {
+                        core.info(`\t==> (found) Artifact: ${artifact.name}`)
+                    }
+                }
+                artifacts = filtered
             }
 
-            const dir = name ? path : pathname.join(path, artifact.name)
+            core.setOutput("artifacts", artifacts)
 
-            fs.mkdirSync(dir, { recursive: true })
+            if (dryRun) {
+                if (artifacts.length == 0) {
+                    core.setOutput("dry_run", false)
+                    core.setOutput("found_artifact", false)
+                    return
+                } else {
+                    core.setOutput("dry_run", true)
+                    core.setOutput("found_artifact", true)
+                    core.info('==> (found) Artifacts')
+                    for (const artifact of artifacts) {
+                        const size = filesize(artifact.size_in_bytes, { base: 10 })
+                        core.info(`\t==> Artifact:`)
+                        core.info(`\t==> ID: ${artifact.id}`)
+                        core.info(`\t==> Name: ${artifact.name}`)
+                        core.info(`\t==> Size: ${size}`)
+                    }
+                    return
+                }
+            }
 
-            const adm = new AdmZip(Buffer.from(zip.data))
+            if (artifacts.length == 0) {
+                return setExitMessage(ifNoArtifactFound, "no artifacts found")
+            }
 
-            core.startGroup(`==> Extracting: ${artifact.name}.zip`)
-            adm.getEntries().forEach((entry) => {
-                const action = entry.isDirectory ? "creating" : "inflating"
-                const filepath = pathname.join(dir, entry.entryName)
+            core.setOutput("found_artifact", true)
 
-                core.info(`  ${action}: ${filepath}`)
-            })
+            for (const artifact of artifacts) {
+                core.info(`==> Artifact: ${artifact.id}`)
 
-            adm.extractAllTo(dir, true)
+                const size = filesize(artifact.size_in_bytes, { base: 10 })
+
+                core.info(`==> Downloading: ${artifact.name}.zip (${size})`)
+
+                const zip = await client.rest.actions.downloadArtifact({
+                    owner: owner,
+                    repo: repo,
+                    artifact_id: artifact.id,
+                    archive_format: "zip",
+                })
+
+                if (skipUnpack) {
+                    fs.mkdirSync(path, { recursive: true })
+                    fs.writeFileSync(`${pathname.join(path, artifact.name)}.zip`, Buffer.from(zip.data), 'binary')
+                    continue
+                }
+
+                const dir = name ? path : pathname.join(path, artifact.name)
+
+                fs.mkdirSync(dir, { recursive: true })
+
+                const adm = new AdmZip(Buffer.from(zip.data))
+
+                core.startGroup(`==> Extracting: ${artifact.name}.zip`)
+                adm.getEntries().forEach((entry) => {
+                    const action = entry.isDirectory ? "creating" : "inflating"
+                    const filepath = pathname.join(dir, entry.entryName)
+
+                    core.info(`  ${action}: ${filepath}`)
+                })
+
+                adm.extractAllTo(dir, true)
+            }
             core.endGroup()
         }
     } catch (error) {
