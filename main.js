@@ -127,9 +127,11 @@ async function main() {
                     }
                     runID = run.id
                     commit = run.head_sha
+                    branch = run.head_branch
                     core.info(`==> (found) Run ID: ${runID}`)
                     core.info(`==> (found) Run date: ${run.created_at}`)
                     core.info(`==> (found) Run head sha: ${run.head_sha}`)
+                    core.info(`==> (found) Run head branch: ${run.head_branch}`)
                     break
                 }
                 if (runID) {
