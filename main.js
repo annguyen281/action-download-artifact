@@ -11,6 +11,7 @@ async function main() {
         const [owner, repo] = core.getInput("repo", { required: true }).split("/")
         const path = core.getInput("path", { required: true })
         const name = core.getInput("name")
+        const skipDownloadArtifact = core.getInput("skip_download_artifact")
         const skipUnpack = core.getInput("skip_unpack")
         const ifNoArtifactFound = core.getInput("if_no_artifact_found")
         let workflow = core.getInput("workflow")
@@ -23,7 +24,6 @@ async function main() {
         let runNumber = core.getInput("run_number")
         let checkArtifacts = core.getInput("check_artifacts")
         let searchArtifacts = core.getInput("search_artifacts")
-        let skipDownloadArtifact = core.getInput("skip_download_artifact")
         let dryRun = core.getInput("dry_run")
 
         const client = github.getOctokit(token)
@@ -148,7 +148,7 @@ async function main() {
             return setExitMessage(ifNoArtifactFound, "no matching workflow run found with any artifacts?")
         }
         
-        if (skipDownloadArtifact)
+        if (!skipDownloadArtifact)
         {
             let artifacts = await client.paginate(client.rest.actions.listWorkflowRunArtifacts, {
                 owner: owner,
